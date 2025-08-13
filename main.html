@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Korean Flashcards</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #9bb7fb;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #1f4068;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(22, 36, 71, 0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+
+        .loading {
+            text-align: center;
+            color: #ccc;
+            font-size: 18px;
+            padding: 20px;
+        }
+
+        .error {
+            background: #2c2c54;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .add-button-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .add-toggle-btn {
+            background: #9bb7fb;
+            color: #162447;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+            box-shadow: 0 5px 15px rgba(22, 36, 71, 0.3);
+        }
+
+        .add-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(22, 36, 71, 0.4);
+            background: #7a97d1;
+        }
+
+        .add-toggle-btn:active {
+            transform: translateY(0);
+            background: #6c85b7;
+        }
+
+        .add-toggle-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #add-card-section {
+            background: #1b1b2f;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px dashed #1f4068;
+            transition: border-color 0.3s ease;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        #add-card-section:hover {
+            border-color: #fff;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #fff;
+            font-size: 1.1em;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #1f4068;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #162447;
+            color: #fff;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #fff;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.1);
+        }
+
+        .korean-input {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .hanja-input {
+            font-size: 18px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .add-btn {
+            background: #9bb7fb;
+            color: #162447;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+        }
+
+        .add-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(22, 36, 71, 0.3);
+            background: #7a97d1;
+        }
+
+        .add-btn:active {
+            transform: translateY(0);
+            background: #6c85b7;
+        }
+
+        .add-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .cancel-btn {
+            background: #9bb7fb;
+            color: #162447;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s;
+        }
+
+        .cancel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(22, 36, 71, 0.3);
+            background: #7a97d1;
+            border-color: #fff;
+        }
+
+        .cancel-btn:active {
+            transform: translateY(0);
+            background: #6c85b7;
+            border-color: #fff;
+        }
+
+        .flashcards-section {
+            margin-top: 30px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #fff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .flashcard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .flashcard {
+            perspective: 1000px;
+            height: 200px;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border: 2px solid #1f4068;
+        }
+
+        .flashcard-front {
+            background: #1b1b2f;
+            color: #fff;
+        }
+
+        .flashcard-back {
+            /* Only the ultimate back background color changed */
+            background: #9bb7fb !important;
+            transform: rotateY(180deg);
+            color: #162447;
+        }
+
+        .korean-text {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .back-content {
+            text-align: center;
+        }
+
+        .hanja-text {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .english-text {
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.3);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .delete-btn:hover {
+            background: rgba(255,255,255,0.7);
+        }
+
+        .empty-state {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #ccc;
+            font-size: 18px;
+            padding: 40px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                background: #1f4068;
+            }
+            
+            .flashcard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Korean Flashcards</h1>
+        
+        <div id="error-message" class="error" style="display: none;"></div>
+        <div id="loading" class="loading">Loading flashcards...</div>
+        
+        <div id="main-content" style="display: none;">
+            <div class="add-button-container" id="add-button-container">
+                <button class="add-toggle-btn" onclick="showAddForm()">+ Add New Card</button>
+            </div>
+
+            <div id="add-card-section" style="display: none;">
+                <div class="form-group">
+                    <label for="korean">Korean Word/Phrase:</label>
+                    <input type="text" id="korean" class="korean-input" placeholder="한국어">
+                </div>
+                
+                <div class="form-group">
+                    <label for="hanja">Hanja (Optional):</label>
+                    <input type="text" id="hanja" class="hanja-input" placeholder="漢字">
+                </div>
+                
+                <div class="form-group">
+                    <label for="english">English Meaning:</label>
+                    <textarea id="english" placeholder="English translation and meaning"></textarea>
+                </div>
+                
+                <div class="form-buttons">
+                    <button class="add-btn" onclick="addFlashcard()">Add Flashcard</button>
+                    <button class="cancel-btn" onclick="hideAddForm()">Cancel</button>
+                </div>
+            </div>
+            
+            <div class="flashcards-section">
+                <h2 class="section-title">Your Flashcards (<span id="card-count">0</span>)</h2>
+                <div id="flashcard-grid" class="flashcard-grid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://nsyjzuonmvhqghcuyplb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zeWp6dW9ubXZocWdoY3V5cGxiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwODQyMjAsImV4cCI6MjA3MDY2MDIyMH0.cjnwPeed7rrpTP82eFcRDtL2Fwt8726FWIKc5icolLY';
+        
+        // Initialize Supabase
+        const { createClient } = supabase;
+        const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let flashcards = [];
+        let isLoading = false;
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Load flashcards from Supabase
+        async function loadFlashcards() {
+            try {
+                const { data, error } = await sb
+                    .from('flashcards')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw error;
+                }
+
+                flashcards = data || [];
+                // Hide loading, show main content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                renderFlashcards();
+            } catch (error) {
+                console.error('Error loading flashcards:', error);
+                showError('Failed to load flashcards. Please refresh the page.');
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }
+        }
+
+        // Save flashcard to Supabase
+        async function saveFlashcard(korean, hanja, english) {
+            try {
+                const { data, error } = await sb
+                    .from('flashcards')
+                    .insert([
+                        {
+                            korean: korean,
+                            hanja: hanja || null,
+                            english: english
+                        }
+                    ])
+                    .select()
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                return data;
+            } catch (error) {
+                console.error('Error saving flashcard:', error);
+                throw error;
+            }
+        }
+
+        // Delete flashcard from Supabase
+        async function deleteFlashcardFromDB(id) {
+            try {
+                const { error } = await sb
+                    .from('flashcards')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    throw error;
+                }
+            } catch (error) {
+                console.error('Error deleting flashcard:', error);
+                throw error;
+            }
+        }
+
+        function showAddForm() {
+            const form = document.getElementById('add-card-section');
+            const btnContainer = document.getElementById('add-button-container');
+            form.style.display = 'block';
+            btnContainer.style.display = 'none';
+            setTimeout(() => document.getElementById('korean').focus(), 300);
+        }
+
+        function hideAddForm() {
+            const form = document.getElementById('add-card-section');
+            const btnContainer = document.getElementById('add-button-container');
+            form.style.display = 'none';
+            btnContainer.style.display = 'block';
+            // Clear form when hiding
+            document.getElementById('korean').value = '';
+            document.getElementById('hanja').value = '';
+            document.getElementById('english').value = '';
+        }
+
+        async function addFlashcard() {
+            if (isLoading) return;
+            
+            const korean = document.getElementById('korean').value.trim();
+            const hanja = document.getElementById('hanja').value.trim();
+            const english = document.getElementById('english').value.trim();
+
+            if (!korean || !english) {
+                alert('Please fill in both Korean and English fields!');
+                return;
+            }
+
+            // Disable button and show loading state
+            isLoading = true;
+            const addBtn = document.querySelector('.add-btn');
+            const toggleBtn = document.querySelector('.add-toggle-btn');
+            addBtn.disabled = true;
+            toggleBtn.disabled = true;
+            addBtn.textContent = 'Adding...';
+
+            try {
+                const newCard = await saveFlashcard(korean, hanja, english);
+                flashcards.unshift(newCard); // Add to beginning of array
+                
+                // Clear form and hide it
+                document.getElementById('korean').value = '';
+                document.getElementById('hanja').value = '';
+                document.getElementById('english').value = '';
+                hideAddForm();
+                
+                renderFlashcards();
+            } catch (error) {
+                showError('Failed to add flashcard. Please try again.');
+            } finally {
+                // Re-enable buttons
+                isLoading = false;
+                addBtn.disabled = false;
+                toggleBtn.disabled = false;
+                addBtn.textContent = 'Add Flashcard';
+            }
+        }
+
+        async function deleteFlashcard(id) {
+            if (!confirm('Are you sure you want to delete this flashcard?')) {
+                return;
+            }
+
+            try {
+                await deleteFlashcardFromDB(id);
+                flashcards = flashcards.filter(card => card.id !== id);
+                renderFlashcards();
+            } catch (error) {
+                showError('Failed to delete flashcard. Please try again.');
+            }
+        }
+
+        function flipCard(element) {
+            element.classList.toggle('flipped');
+        }
+
+        function renderFlashcards() {
+            const grid = document.getElementById('flashcard-grid');
+            const count = document.getElementById('card-count');
+            
+            count.textContent = flashcards.length;
+
+
+
+            grid.innerHTML = flashcards.map(card => `
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <div class="korean-text">${escapeHtml(card.korean)}</div>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteFlashcard(${card.id})" title="Delete card">×</button>
+                        </div>
+                        <div class="flashcard-back">
+                            <div class="back-content">
+                                ${card.hanja ? `<div class="hanja-text">${escapeHtml(card.hanja)}</div>` : ''}
+                                <div class="english-text">${escapeHtml(card.english).replace(/\n/g, '<br>')}</div>
+                            </div>
+                            <button class="delete-btn" onclick="event.stopPropagation(); deleteFlashcard(${card.id})" title="Delete card">×</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Utility function to escape HTML
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Allow Enter key to add flashcard when in English field
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('english').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey && !isLoading) {
+                    e.preventDefault();
+                    addFlashcard();
+                }
+            });
+        });
+
+        // Initialize app
+        loadFlashcards();
+    </script>
+</body>
+</html>
